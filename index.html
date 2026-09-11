@@ -1316,12 +1316,12 @@
             document.getElementById('autosaveStatus').textContent = 'SALVANDO';
 
             // Envia para o Google Sheets em segundo plano
-            if (GOOGLE_SCRIPT_URL) {
+            if if (GOOGLE_SCRIPT_URL) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dadosApp)
+                }).then(() => {
                 }).then(() => {
                     document.getElementById('autosaveBadge').classList.replace('bg-amber-500', 'bg-emerald-600');
                     document.getElementById('autosaveStatus').textContent = 'NUVEM';
