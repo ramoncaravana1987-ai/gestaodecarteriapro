@@ -71,8 +71,7 @@
 
     <script>
         // URL DO SEU GOOGLE APPS SCRIPT
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxI1qXcX3gvFogFxV-xHD3LF6Ha3V1HU0gjoSjjd9dZ6YBBmF-Zeas2FeTt3XM9RcmJYw/exec';
-
+       const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxI1qXcX3gvFogFxV-xHD3LF6Ha3V1HU0gjoSjjd9dZ6YBBmF-Zeas2FeTt3XM9RcmJYw/exec';
         let dadosApp = { clientes: [], produtos: [] };
 
         function atualizarStatus(estado, mensagem) {
@@ -100,34 +99,33 @@
             }
         }
 
-        function salvarNaNuvem() {
-            atualizarStatus('loading', 'Salvando alterações...');
-            try {
-                let form = document.getElementById('hiddenFormSync');
-                if (!form) {
-                    form = document.createElement('form');
-                    form.id = 'hiddenFormSync';
-                    form.action = GOOGLE_SCRIPT_URL;
-                    form.method = 'POST';
-                    form.target = 'hiddenIframeSync';
-                    form.style.display = 'none';
-                    
-                    let iframe = document.createElement('iframe');
-                    iframe.name = 'hiddenIframeSync';
-                    iframe.style.display = 'none';
-                    
-                    let input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'payload';
-                    input.id = 'hiddenPayloadInput';
-                    
-                    form.appendChild(input);
-                    form.appendChild(iframe);
-                    document.body.appendChild(form);
-                }
-                
-                document.getElementById('hiddenPayloadInput').value = JSON.stringify(dadosApp);
-                form.submit();
+function salvarNaNuvem() {
+    if (!GOOGLE_SCRIPT_URL) return;
+    let form = document.getElementById('hiddenFormSync');
+    if (!form) {
+        form = document.createElement('form');
+        form.id = 'hiddenFormSync';
+        form.action = GOOGLE_SCRIPT_URL;
+        form.method = 'POST';
+        form.target = 'hiddenIframeSync';
+        form.style.display = 'none';
+        
+        let iframe = document.createElement('iframe');
+        iframe.name = 'hiddenIframeSync';
+        iframe.style.display = 'none';
+        
+        let input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'payload';
+        input.id = 'hiddenPayloadInput';
+        
+        form.appendChild(input);
+        form.appendChild(iframe);
+        document.body.appendChild(form);
+    }
+    document.getElementById('hiddenPayloadInput').value = JSON.stringify(dadosApp);
+    form.submit();
+}
                 
                 setTimeout(() => {
                     atualizarStatus('', 'Salvo no Google Sheets');
