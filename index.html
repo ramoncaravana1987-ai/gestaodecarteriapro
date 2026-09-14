@@ -85,31 +85,37 @@
             }
         });
 
-        // Função de Importação de Backup Blindada
-        function importarDados(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+function importarDados(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const conteudo = JSON.parse(e.target.result);
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const conteudo = JSON.parse(e.target.result);
-                    
-                    if (Array.isArray(conteudo)) {
-                        dadosApp = { clientes: conteudo, produtos: [] };
-                    } else {
-                        dadosApp = conteudo;
-                    }
-                    
-                    salvarDados();
-                    alert('Backup importado e sincronizado com sucesso!');
-                    atualizarInterface();
-                } catch (err) {
-                    alert('Erro ao ler o arquivo JSON: ' + err.message);
-                }
-            };
-            reader.readAsText(file);
+            // Trata diferentes formatos e variações de chaves do backup
+            if (Array.isArray(conteudo)) {
+                dadosApp = { clientes: conteudo, produtos: [] };
+            } else if (conteudo.clientes) {
+                dadosApp = conteudo;
+            } else if (conteudo.Clientes) {
+                dadosApp = { clientes: conteudo.Clientes, produtos: conteudo.produtos || conteudo.Produtos || [] };
+            } else {
+                // Se encontrar qualquer array no objeto, assume que são os clientes
+                const chaveArray = Object.keys(conteudo).find(k => Array.isArray(conteudo[k]));
+                dadosApp = { clientes: chaveArray ? conteudo[chaveArray] : [], produtos: [] };
+            }
+            
+            salvarDados();
+            atualizarInterface();
+            alert(`Sucesso! ${dadosApp.clientes.length} clientes carregados na tela.`);
+        } catch (err) {
+            alert('Erro ao ler o arquivo JSON: ' + err.message);
         }
+    };
+    reader.readAsText(file);
+}
 
         // Função de Salvamento Automático (Local + Nuvem via Formulário Oculto)
         function salvarDados() {
