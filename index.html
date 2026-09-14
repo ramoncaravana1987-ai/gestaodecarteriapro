@@ -80,24 +80,41 @@
             dot.className = "dot " + estado;
             text.innerText = mensagem;
         }
-
-        async function carregarDaNuvem() {
-            atualizarStatus('loading', 'Baixando da planilha...');
-            try {
-                const resposta = await fetch(GOOGLE_SCRIPT_URL);
-                if (!resposta.ok) throw new Error("Erro ao acessar planilha.");
-                const resultado = await resposta.json();
-                
-                if (resultado) {
-                    dadosApp = resultado;
-                    renderizarInterface();
-                    atualizarStatus('', 'Planilha Sincronizada');
-                }
-            } catch (erro) {
-                console.error(erro);
-                atualizarStatus('error', 'Erro de Sincronização');
-            }
+async function carregarDaNuvem() {
+    atualizarStatus('loading', 'Baixando da planilha...');
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // Limite de 4 segundos
+        
+        const resposta = await fetch(GOOGLE_SCRIPT_URL, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!resposta.ok) throw new Error("Erro ao acessar planilha.");
+        const resultado = await resposta.json();
+        
+        if (resultado && resultado.clientes && resultado.clientes.length > 0) {
+            dadosApp = resultado;
+            renderizarInterface();
+            atualizarStatus('', 'Planilha Sincronizada');
+        } else {
+            carregarLocalSalvo();
         }
+    } catch (erro) {
+        console.warn('A nuvem demorou ou falhou, carregando dados locais.');
+        carregarLocalSalvo();
+    }
+}
+function carregarLocalSalvo() {
+    const salvo = localStorage.getItem('controle_clientes_db');
+    if (salvo) {
+        dadosApp = JSON.parse(salvo);
+        renderizarInterface();
+        atualizarStatus('', 'Sincronizado Localmente');
+    } else {
+        renderizarInterface();
+        atualizarStatus('error', 'Nenhum dado encontrado');
+    }
+}
 
 function salvarNaNuvem() {
     if (!GOOGLE_SCRIPT_URL) return;
