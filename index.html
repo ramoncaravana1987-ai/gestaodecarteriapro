@@ -3,130 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Carteira Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gestão Comercial de Carteira</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 22px; color: #1e293b; }
+        .sub { font-size: 13px; color: #64748b; }
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; color: #fff; }
+        .btn-sync { background: #0284c7; }
+        .btn-import { background: #2563eb; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .progress-bar { background: #e2e8f0; border-radius: 6px; height: 16px; width: 100%; overflow: hidden; margin-top: 10px; display: flex; }
+        .progress-fill { background: #22c55e; height: 100%; width: 0%; transition: width 0.3s; }
+        #status-nuvem { position: fixed; bottom: 15px; right: 15px; background: #1e293b; color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+        .dot.loading { background: #eab308; }
+        .dot.error { background: #ef4444; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        th { background: #f8fafc; color: #475569; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-6">
-    <div class="max-w-6xl mx-auto space-y-6">
-        
-        <!-- Cabeçalho e Controles -->
-        <header class="flex flex-wrap justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700">
-            <h1 class="text-xl font-bold text-emerald-400">Gestão de Carteira</h1>
-            
-            <div class="flex items-center gap-4">
-                <!-- Status de Nuvem -->
-                <div id="autosaveBadge" class="flex items-center gap-2 bg-emerald-600 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                    <span id="autosaveStatus">NUVEM</span>
-                </div>
+<body>
 
-                <!-- Botão de Importar Backup -->
-                <label class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition">
-                    Importar Backup (.json)
-                    <input type="file" id="fileInput" accept=".json" class="hidden" onchange="importarDados(event)">
-                </label>
-            </div>
-        </header>
+    <header>
+        <div>
+            <h1>Gestão Comercial de Carteira</h1>
+            <span class="sub">Acompanhamento mensal de metas e orçamentos (Sincronizado com Google Sheets)</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn-sync" onclick="salvarNaNuvemManual()">Forçar Salvar</button>
+            <button class="btn-import" onclick="document.getElementById('fileInput').click()">Importar Backup</button>
+            <input type="file" id="fileInput" style="display:none" onchange="importarArquivo(event)">
+        </div>
+    </header>
 
-        <!-- Área Principal de Exibição -->
-        <main class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 space-y-4">
-            <div class="flex justify-between items-center">
-                <h2 class="text-lg font-semibold">Resumo do Sistema</h2>
-                <span id="infoClientes" class="text-sm text-slate-400">Carregando registros...</span>
-            </div>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-slate-700 text-slate-400 text-sm">
-                            <th class="p-3">Fantasia / Razão</th>
-                            <th class="p-3">Cidade</th>
-                            <th class="p-3">Contato</th>
-                            <th class="p-3">WhatsApp</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaClientesBody" class="divide-y divide-slate-700 text-sm">
-                        <!-- Preenchido via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </main>
+    <div class="card">
+        <h3>Progresso da Carteira no Mês</h3>
+        <p>Total de Clientes na Carteira: <strong id="total-clientes">0</strong> | Já Atendidos: <strong id="atendidos-clientes">0</strong></p>
+        <div class="progress-bar">
+            <div id="bar-fill" class="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Lista de Clientes</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fantasia</th>
+                    <th>Razão Social</th>
+                    <th>Cidade</th>
+                    <th>WhatsApp</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-clientes">
+                <tr><td colspan="4" style="text-align:center;">Carregando dados do Google Sheets...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="status-nuvem">
+        <div id="dot-status" class="dot loading"></div>
+        <span id="text-status">Conectando à planilha...</span>
     </div>
 
     <script>
-        // URL DO GOOGLE APPS SCRIPT JÁ CONFIGURADA:
+        // URL DO SEU GOOGLE APPS SCRIPT
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxI1qXcX3gvFogFxV-xHD3LF6Ha3V1HU0gjoSjjd9dZ6YBBmF-Zeas2FeTt3XM9RcmJYw/exec';
 
         let dadosApp = { clientes: [], produtos: [] };
 
-        // Inicialização
-        window.addEventListener('DOMContentLoaded', async () => {
-            const salvoLocal = localStorage.getItem('controle_clientes_db');
-            if (salvoLocal) {
-                try {
-                    dadosApp = JSON.parse(salvoLocal);
-                    atualizarInterface();
-                } catch(e) { console.error(e); }
-            }
-            
-            // Tenta buscar da nuvem se houver URL válida
-            if (GOOGLE_SCRIPT_URL) {
-                try {
-                    const resposta = await fetch(GOOGLE_SCRIPT_URL);
-                    const dadosNuvem = await resposta.json();
-                    if (dadosNuvem && dadosNuvem.clientes && dadosNuvem.clientes.length > 0) {
-                        dadosApp = dadosNuvem;
-                        localStorage.setItem('controle_clientes_db', JSON.stringify(dadosApp));
-                        atualizarInterface();
-                    }
-                } catch(err) {
-                    console.log('Usando dados locais (offline ou erro na nuvem).');
-                }
-            }
-        });
-
-function importarDados(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const conteudo = JSON.parse(e.target.result);
-            
-            // Trata diferentes formatos e variações de chaves do backup
-            if (Array.isArray(conteudo)) {
-                dadosApp = { clientes: conteudo, produtos: [] };
-            } else if (conteudo.clientes) {
-                dadosApp = conteudo;
-            } else if (conteudo.Clientes) {
-                dadosApp = { clientes: conteudo.Clientes, produtos: conteudo.produtos || conteudo.Produtos || [] };
-            } else {
-                // Se encontrar qualquer array no objeto, assume que são os clientes
-                const chaveArray = Object.keys(conteudo).find(k => Array.isArray(conteudo[k]));
-                dadosApp = { clientes: chaveArray ? conteudo[chaveArray] : [], produtos: [] };
-            }
-            
-            salvarDados();
-            atualizarInterface();
-            alert(`Sucesso! ${dadosApp.clientes.length} clientes carregados na tela.`);
-        } catch (err) {
-            alert('Erro ao ler o arquivo JSON: ' + err.message);
+        function atualizarStatus(estado, mensagem) {
+            const dot = document.getElementById('dot-status');
+            const text = document.getElementById('text-status');
+            dot.className = "dot " + estado;
+            text.innerText = mensagem;
         }
-    };
-    reader.readAsText(file);
-}
 
-        // Função de Salvamento Automático (Local + Nuvem via Formulário Oculto)
-        function salvarDados() {
-            localStorage.setItem('controle_clientes_db', JSON.stringify(dadosApp));
-            
-            const badge = document.getElementById('autosaveBadge');
-            const status = document.getElementById('autosaveStatus');
-            badge.classList.replace('bg-emerald-600', 'bg-amber-500');
-            status.textContent = 'SALVANDO';
+        async function carregarDaNuvem() {
+            atualizarStatus('loading', 'Baixando da planilha...');
+            try {
+                const resposta = await fetch(GOOGLE_SCRIPT_URL);
+                if (!resposta.ok) throw new Error("Erro ao acessar planilha.");
+                const resultado = await resposta.json();
+                
+                if (resultado) {
+                    dadosApp = resultado;
+                    renderizarInterface();
+                    atualizarStatus('', 'Planilha Sincronizada');
+                }
+            } catch (erro) {
+                console.error(erro);
+                atualizarStatus('error', 'Erro de Sincronização');
+            }
+        }
 
-            if (GOOGLE_SCRIPT_URL) {
+        function salvarNaNuvem() {
+            atualizarStatus('loading', 'Salvando alterações...');
+            try {
                 let form = document.getElementById('hiddenFormSync');
                 if (!form) {
                     form = document.createElement('form');
@@ -154,39 +130,66 @@ function importarDados(event) {
                 form.submit();
                 
                 setTimeout(() => {
-                    badge.classList.replace('bg-amber-500', 'bg-emerald-600');
-                    status.textContent = 'NUVEM';
-                }, 1200);
+                    atualizarStatus('', 'Salvo no Google Sheets');
+                }, 1000);
+            } catch (erro) {
+                console.error(erro);
+                atualizarStatus('error', 'Erro ao Salvar');
             }
         }
 
-        // Renderização simples na tela para validação
-        function atualizarInterface() {
-            const tbody = document.getElementById('tabelaClientesBody');
-            const info = document.getElementById('infoClientes');
-            tbody.innerHTML = '';
-            
-            const total = dadosApp.clientes ? dadosApp.clientes.length : 0;
-            info.textContent = `${total} clientes cadastrados`;
+        function salvarNaNuvemManual() {
+            salvarNaNuvem();
+        }
 
-            if (total === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum dado encontrado. Importe seu backup.</td></tr>`;
+        function renderizarInterface() {
+            const tbody = document.getElementById('tabela-clientes');
+            tbody.innerHTML = "";
+            
+            const clientes = dadosApp.clientes || [];
+            document.getElementById('total-clientes').innerText = clientes.length;
+            document.getElementById('atendidos-clientes').innerText = clientes.length;
+
+            if (clientes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum cliente cadastrado. Importe seu backup no botão acima.</td></tr>`;
                 return;
             }
 
-            // Exibe os primeiros 50 para teste rápido de performance
-            dadosApp.clientes.slice(0, 50).forEach(c => {
+            clientes.forEach(c => {
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-700/50 transition';
                 tr.innerHTML = `
-                    <td class="p-3 font-medium text-white">${c.fantasia || c.nome || '---'}</td>
-                    <td class="p-3 text-slate-300">${c.cidade || '---'}</td>
-                    <td class="p-3 text-slate-300">${c.contato || '---'}</td>
-                    <td class="p-3 text-slate-300">${c.whatsapp || '---'}</td>
+                    <td>${c.fantasia || '-'}</td>
+                    <td>${c.razao || '-'}</td>
+                    <td>${c.cidade || '-'}</td>
+                    <td>${c.whatsapp || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
+
+        function importarArquivo(event) {
+            const arquivo = event.target.files[0];
+            if (!arquivo) return;
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                try {
+                    const conteudo = JSON.parse(e.target.result);
+                    if (Array.isArray(conteudo)) {
+                        dadosApp.clientes = conteudo;
+                    } else {
+                        dadosApp = conteudo;
+                    }
+                    renderizarInterface();
+                    salvarNaNuvem();
+                    alert("Importação realizada e enviada para o Google Sheets com sucesso!");
+                } catch (err) {
+                    alert("Erro ao ler o arquivo JSON de backup.");
+                }
+            };
+            leitor.readAsText(arquivo);
+        }
+
+        window.addEventListener('DOMContentLoaded', carregarDaNuvem);
     </script>
 </body>
 </html>
